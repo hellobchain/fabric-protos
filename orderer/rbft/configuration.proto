@@ -1,0 +1,39 @@
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+option go_package = "github.com/hyperledger/fabric-protos-go/orderer/rbft";
+option java_package = "org.hyperledger.fabric.protos.orderer.rbft";
+
+package rbft;
+
+// ConfigMetadata is serialized and set as the value of ConsensusType.Metadata in
+// a channel configuration when the ConsensusType.Type is set "rbft".
+message ConfigMetadata {
+    repeated Consenter consenters = 1;
+    Options options = 2;
+}
+
+// Consenter represents a consenting node (i.e. replica).
+message Consenter {
+    string host = 1;
+    uint32 port = 2;
+    bytes client_tls_cert = 3;
+    bytes server_tls_cert = 4;
+}
+
+// Options to be specified for all the rbft nodes. These can be modified on a
+// per-channel basis.
+message Options {
+    uint32 execute_max_num = 1;
+    int64 k = 2;
+    int64 water_l = 3;
+    int64 Log_multiplier = 4;
+    uint64 view = 5;
+    string tick_interval = 6; // time duration format, e.g. 500ms
+    uint32 max_inflight_blocks = 7;
+    // Take snapshot when cumulative data exceeds certain size in bytes.
+    uint32 snapshot_interval_size = 8;
+}

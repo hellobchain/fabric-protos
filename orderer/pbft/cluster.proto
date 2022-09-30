@@ -1,0 +1,188 @@
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+option go_package = "github.com/hyperledger/fabric-protos-go/orderer/pbft";
+option java_package = "org.hyperledger.fabric.protos.orderer.pbft";
+
+package pbft;
+
+import "common/common.proto";
+
+// Cluster defines communication between cluster members.
+service Cluster {
+    // Step passes an implementation-specific message to another cluster member.
+    rpc Step(stream StepRequest) returns (stream StepResponse);
+}
+
+// StepRequest wraps a message that is sent to a cluster member.
+message StepRequest {
+    oneof payload {
+        Request request_request = 1;
+        PrePrepare preprepare_request = 2;
+        Prepare prepare_request = 3;
+        Commit commit_request = 4;
+        CheckPoint checkpoint_request = 5;
+        Reply reply_request = 6;
+        ViewChange viewchange_request = 7;
+        Snapshot snap_request  = 8;
+    }
+}
+
+// StepResponse is a message received from a cluster member.
+message StepResponse {
+    oneof payload {
+        Response request_res = 1;
+    }
+}
+
+// Operation 请求的具体操作
+message Operation {
+    common.Envelope envelope = 1; // 交易
+    string channel_id = 2;  // 通道名称
+    uint64 config_seq = 3; // 配置块序号
+    TxType type = 4;  // 交易类型 TYPENORMAL  TYPECONFIG
+}
+
+message Result {
+    ReplyState status = 1;
+}
+
+enum ReplyState {
+    OK = 0;
+    Failed = 1;
+}
+
+enum TxType {
+    TYPENORMAL = 0;
+    TYPECONFIG = 1;
+}
+
+// Request 客户端发起的请求
+message Request {
+    Operation op = 1; // 指请求的具体操作
+    uint64 time_stamp = 2; // 指请求时客户端追加的时间戳
+    uint64 id = 3; // 指客户端标识
+    bytes signature = 4;// 附带签名
+    common.SignatureHeader signature_header = 5; // 签名头
+}
+
+message Message {
+    repeated Request requests = 1;
+}
+
+// PrePrepare Pre-Prepare
+message PrePrepare {
+    uint64 view = 1; // 指视图编号；
+    int64 sequence = 2;  // 主要用于对所有客户端的请求进行排序
+    string digest = 3;   // 指消息摘要
+    Message message = 4; // 指消息内容
+    uint64 identify = 5; // 指客户端标识
+    bytes signature = 6;  // 附带签名
+    string channel_id = 7;  // 通道名称
+    common.SignatureHeader signature_header = 8; // 签名头
+}
+
+
+// Prepare 准备阶段
+message Prepare {
+    uint64 view = 1; // 指视图编号；
+    int64 sequence = 2;  // 主要用于对所有客户端的请求进行排序
+    string digest = 3;   // 指消息摘要
+    uint64 identify = 4; // 指客户端标识
+    bytes signature = 5;  // 附带签名
+    string channel_id = 6;  // 通道名称
+    common.SignatureHeader signature_header = 7; // 签名头
+}
+
+message Commit {
+    uint64 view = 1; // 指视图编号；
+    int64 sequence = 2;  // 主要用于对所有客户端的请求进行排序
+    string digest = 3;   // 指消息摘要
+    uint64 identify = 4; // 指客户端标识
+    bytes signature = 5;  // 附带签名
+    string channel_id = 6;  // 通道名称
+    common.SignatureHeader signature_header = 7; // 签名头
+}
+
+message Reply {
+    uint64 view = 1; // 指视图编号；
+    int64 sequence = 2;
+    string digest = 3;
+    uint64 id = 4; // 指客户端标识
+    string channel_id = 5;  // 通道名称
+    Result result = 6;
+}
+
+message CheckPoint {
+    int64 sequence = 1;
+    string digest = 2;
+    uint64 id = 3; // 指客户端标识
+    string channel_id = 4;  // 通道名称
+}
+
+message ViewChangeC {
+    int64 sequence = 1;
+    uint64 id = 2; // 指客户端标识
+}
+
+message ViewChangePq {
+    int64 sequence = 1;
+    string digest = 2;
+    uint64 view = 3;
+}
+
+message PQSet {
+    repeated ViewChangePq set = 1;
+}
+
+message ViewChange {
+    uint64 view = 1;
+    uint64 h = 2;
+    repeated ViewChangeC c_set = 3;
+    repeated ViewChangePq p_set = 4;
+    repeated ViewChangePq q_set = 5;
+    uint64 id = 6;
+    string channel_id = 7;  // 通道名称
+    bytes signature = 8;
+    common.SignatureHeader signature_header = 9; // 签名头
+}
+
+message NewView {
+    uint64 view = 1;
+    repeated ViewChange v_set = 2;
+    map<uint64, string> x_set = 3;
+    uint64 id = 4;
+}
+
+message Snapshot {
+    bytes data = 1;
+    string channel_id = 2;
+}
+
+// Response returns a success
+// or failure status to the sender.
+message Response {
+    string channel = 1;
+    // Status code, which may be used to programatically respond to success/failure.
+    common.Status status = 2;
+    // Info string which may contain additional information about the returned status.
+    string info = 3;
+}
+enum ConfChangeType {
+    ConfChangeAddNode         = 0;
+    ConfChangeRemoveNode      = 1;
+    ConfChangeUpdateNode      = 2;
+    ConfChangeAddLearnerNode  = 3;
+}
+
+message ConfChange {
+    uint64 id = 1;
+    int32 type = 2;
+    uint64 node_id = 3;
+    bytes context = 4;
+
+
+}

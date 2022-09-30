@@ -1,0 +1,34 @@
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+option go_package = "github.com/hyperledger/fabric-protos-go/orderer/pbft";
+option java_package = "org.hyperledger.fabric.protos.orderer.pbft";
+
+package pbft;
+
+// BlockMetadata stores data used by the pbft OSNs when
+// coordinating with each other, to be serialized into
+// block meta dta field and used after failres and restarts.
+message BlockMetadata {
+    // Maintains a mapping between the cluster's OSNs
+    // and their Raft IDs.
+    repeated uint64 consenter_ids = 1;
+    // Carries the pbft ID value that will be assigned
+    // to the next OSN that will join this cluster.
+    uint64 next_consenter_id = 2;
+    // view of pbft entry for current block.
+    uint64 pbft_view = 3;
+
+    int64 pbft_sequence = 4;
+    int64 pbft_checkpoint = 5;
+    int64 pbft_waterL = 6;
+}
+
+// ClusterMetadata encapsulates metadata that is exchanged among cluster nodes
+message ClusterMetadata {
+    // Indicates active nodes in cluster that are reacheable by pbft leader
+    repeated uint64 active_nodes = 1;
+}

@@ -1,0 +1,158 @@
+// Copyright the Hyperledger Fabric contributors. All rights reserved.
+//
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+option go_package = "github.com/hyperledger/fabric-protos-go/orderer/rbft";
+option java_package = "org.hyperledger.fabric.protos.orderer.rbft";
+
+package rbft;
+
+import "common/common.proto";
+
+// Cluster defines communication between cluster members.
+service Cluster {
+    // Step passes an implementation-specific message to another cluster member.
+    rpc Step(stream StepRequest) returns (stream StepResponse);
+}
+
+// StepRequest wraps a message that is sent to a cluster member.
+message StepRequest {
+    oneof payload {
+        Request request_request = 1;
+        Block block_request = 2;
+        ComMsg com_msg_request = 3;
+        CommitMsg commit_msg_request = 4;
+        LastBlock last_block_request = 5;
+        PrepareMsg prepare_msg_request = 6;
+        ProposalMsg proposal_msg_request = 7;
+        Snapshot snapshot_request = 8;
+
+    }
+}
+
+// StepResponse is a message received from a cluster member.
+message StepResponse {
+    oneof payload {
+        Response request_res = 1;
+    }
+}
+
+// Operation 请求的具体操作
+message Operation {
+    common.Envelope envelope = 1; // 交易
+    string channel_id = 2;  // 通道名称
+    uint64 config_seq = 3; // 配置块序号
+    TxType type = 4;  // 交易类型 TYPENORMAL  TYPECONFIG
+}
+
+message Result {
+    ReplyState status = 1;
+}
+
+enum TxType {
+    TYPENORMAL = 0;
+    TYPECONFIG = 1;
+}
+
+// Request 客户端发起的请求
+message Request {
+    Operation op = 1; // 指请求的具体操作
+    uint64 time_stamp = 2; // 指请求时客户端追加的时间戳
+    uint64 id = 3; // 指客户端标识
+    bytes signature = 4;// 附带签名
+    common.SignatureHeader signature_header = 5; // 签名头
+}
+
+message Message {
+    repeated Request requests = 1;
+}
+
+message Block {
+    Message message = 1; // 指消息内容
+    uint64 time_stamp = 2;
+    bytes signature = 3;  // 附带签名
+    string channel_id = 4;  // 通道名称
+    common.SignatureHeader signature_header = 5; // 签名头
+}
+
+message ComMsg {
+    uint64 view = 1; // 指视图编号
+    uint64 identify = 2; // 指客户端标识
+    bytes com = 3;
+    bytes a_com = 4;
+    bytes signature = 5;  // 附带签名
+    string channel_id = 6;  // 通道名称
+    common.SignatureHeader signature_header = 7; // 签名头
+}
+
+message CommitMsg {
+    uint64 view = 1; // 指视图编号；
+    int64 sequence = 2;  // 主要用于对所有客户端的请求进行排序
+    string digest = 3;   // 指消息摘要
+    bytes threshold = 4;
+    bytes signature = 5;  // 附带签名
+    string channel_id = 6;  // 通道名称
+    common.SignatureHeader signature_header = 7; // 签名头
+}
+
+message LastBlock {
+    map<string,uint64> coms = 1;
+    map<string,uint64> a_coms = 2; // 指请求时客户端追加的时间戳
+}
+
+message PrepareMsg {
+    uint64 view = 1;
+    int64 sequence = 2;
+    string digest = 3;
+    bytes part_sig = 4;
+    bytes signature = 5;  // 附带签名
+    string channel_id = 6;  // 通道名称
+    common.SignatureHeader signature_header = 7; // 签名头
+}
+
+message ProposalMsg {
+    bytes cp = 1;
+    uint64 view = 2;
+    int64 sequence = 3;
+    string digest = 4;
+    bool block_type = 5;
+    bytes payload = 6;
+    bytes signature = 7;  // 附带签名
+    string channel_id = 8;  // 通道名称
+    common.SignatureHeader signature_header = 9; // 签名头
+}
+
+message Snapshot {
+    bytes data = 1;
+    string channel_id = 2;
+}
+
+// Response returns a success
+// or failure status to the sender.
+message Response {
+    string channel = 1;
+    // Status code, which may be used to programatically respond to success/failure.
+    common.Status status = 2;
+    // Info string which may contain additional information about the returned status.
+    string info = 3;
+}
+enum ConfChangeType {
+    ConfChangeAddNode         = 0;
+    ConfChangeRemoveNode      = 1;
+    ConfChangeUpdateNode      = 2;
+    ConfChangeAddLearnerNode  = 3;
+}
+
+enum ReplyState {
+    OK = 0;
+    Failed = 1;
+}
+
+message ConfChange {
+    uint64 id = 1;
+    int32 type = 2;
+    uint64 node_id = 3;
+    bytes context = 4;
+}
